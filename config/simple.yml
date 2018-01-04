@@ -3,7 +3,7 @@
   source_files:
     - ./test/nginx.log
   static_config:
-    foo: xxxx
+    foo: foo
   relabel_config: 
     source_labels: 
       - request
@@ -11,7 +11,7 @@
       - status
     replacement:
       request: 
-        trim: ?
+        trim: "?"
         replace:
-          - target: v1.0/hotel/printer
-            value: v1.0/hotel/printer
+          - target: /v1.0/example/\d+
+            value: /v1.0/example/:id
