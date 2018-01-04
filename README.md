@@ -74,3 +74,7 @@ app_http_response_time_seconds_count{foo="foo",method="GET",request="/v1.0/examp
 # TYPE app_http_upstream_time_seconds histogram
 
 ```
+
+## Thanks
+
+- Inspired by [prometheus-nginxlog-exporter](https://github.com/martin-helmich/prometheus-nginxlog-exporter)
