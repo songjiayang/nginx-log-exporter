@@ -44,7 +44,7 @@ exit status 2
             value: /v1.0/example/:id
 ```
 
-- `format`: your nginx `log_format` regular expression. notice: you should make a new one for your app.
+- format: your nginx `log_format` regular expression, notice: you should make a new one for your app.
 - name: service name, metric will be `{name}_http_response_count_total`, `{name}_http_response_count_total`, `{name}_http_response_size_bytes`, `{name}_http_upstream_time_seconds`, `{name}_http_response_time_seconds`
 - source_files: sevice nginx log, support multiple files.
 - static_config: all metrics will add static labelsets.
