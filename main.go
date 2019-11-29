@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	collector "github.com/songjiayang/nginx-log-exporter/collector"
 	"github.com/songjiayang/nginx-log-exporter/config"
 )
@@ -31,6 +31,6 @@ func main() {
 	}
 
 	fmt.Printf("running HTTP server on address %s\n", bind)
-	http.Handle("/metrics", prometheus.Handler())
+	http.Handle("/metrics", promhttp.Handler())
 	http.ListenAndServe(bind, nil)
 }
