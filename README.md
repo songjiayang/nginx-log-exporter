@@ -6,7 +6,7 @@ A Nginx log parser exporter for prometheus metrics.
 
 ## Installation
 
-1. go get `https://github.com/songjiayang/nginx-log-exporter`
+1. go get `github.com/songjiayang/nginx-log-exporter`
 2. Or use [binary](https://github.com/songjiayang/nginx-log-exporter/releases) release
 
 ## Usage
