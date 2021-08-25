@@ -4,14 +4,17 @@
     - ./test/nginx.log
   static_config:
     foo: foo
-  relabel_config: 
-    source_labels: 
+  relabel_config:
+    source_labels:
       - request
       - method
       - status
     replacement:
-      request: 
+      request:
         trim: "?"
         replace:
           - target: /v1.0/example/\d+
             value: /v1.0/example/:id
+  buckets:
+    upstream: [0.1, 0.3, 0.5, 1, 2]
+    response: [0.1, 0.3, 0.5, 1, 2]

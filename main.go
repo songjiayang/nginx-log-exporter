@@ -7,7 +7,8 @@ import (
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	collector "github.com/songjiayang/nginx-log-exporter/collector"
+
+	"github.com/songjiayang/nginx-log-exporter/collector"
 	"github.com/songjiayang/nginx-log-exporter/config"
 )
 
@@ -18,7 +19,6 @@ var (
 func main() {
 	flag.StringVar(&bind, "web.listen-address", ":9999", "Address to listen on for the web interface and API.")
 	flag.StringVar(&configFile, "config.file", "config.yml", "Nginx log exporter configuration file name.")
-
 	flag.Parse()
 
 	cfg, err := config.LoadFile(configFile)

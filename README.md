@@ -31,17 +31,20 @@ exit status 2
     - ./test/nginx.log
   static_config:
     foo: foo
-  relabel_config: 
-    source_labels: 
+  relabel_config:
+    source_labels:
       - request
       - method
       - status
     replacement:
-      request: 
+      request:
         trim: "?"
         replace:
           - target: /v1.0/example/\d+
             value: /v1.0/example/:id
+  buckets:
+    upstream: [0.1, 0.3, 0.5, 1, 2]
+    response: [0.1, 0.3, 0.5, 1, 2]
 ```
 
 - format: your nginx `log_format` regular expression, notice: you should make a new one for your app.
@@ -54,29 +57,43 @@ exit status 2
 
 ## Example
 
-After parse `./test/nginx.log`, the result is
+`./test/nginx.log` result is
 
 ```
-# HELP app_http_response_count_total Amount of processed HTTP requests
-# TYPE app_http_response_count_total counter
-app_http_response_count_total{foo="foo",method="GET",request="/v1.0/example",status="200"} 2
-app_http_response_count_total{foo="foo",method="GET",request="/v1.0/example/:id",status="200"} 1
-# HELP app_http_response_size_bytes Total amount of transferred bytes
-# TYPE app_http_response_size_bytes counter
-app_http_response_size_bytes{foo="foo",method="GET",request="/v1.0/example",status="200"} 70
-app_http_response_size_bytes{foo="foo",method="GET",request="/v1.0/example/:id",status="200"} 21
-# HELP app_http_response_time_seconds Time needed by NGINX to handle requests
-# TYPE app_http_response_time_seconds histogram
-app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="0.005"} 2
-.....
+app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="0.1"} 2
+app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="0.3"} 2
+app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="0.5"} 2
+app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="1"} 2
+app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="2"} 2
+app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="+Inf"} 2
+app_http_response_time_seconds_sum{foo="foo",method="GET",request="/v1.0/example",status="200"} 0.005
 app_http_response_time_seconds_count{foo="foo",method="GET",request="/v1.0/example",status="200"} 2
-app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="0.005"} 1
-
+app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="0.1"} 1
+app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="0.3"} 1
+app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="0.5"} 1
+app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="1"} 1
+app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="2"} 1
+app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="+Inf"} 1
 app_http_response_time_seconds_sum{foo="foo",method="GET",request="/v1.0/example/:id",status="200"} 0.003
 app_http_response_time_seconds_count{foo="foo",method="GET",request="/v1.0/example/:id",status="200"} 1
 # HELP app_http_upstream_time_seconds Time needed by upstream servers to handle requests
 # TYPE app_http_upstream_time_seconds histogram
-
+app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="0.1"} 2
+app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="0.3"} 2
+app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="0.5"} 2
+app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="1"} 2
+app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="2"} 2
+app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="+Inf"} 2
+app_http_upstream_time_seconds_sum{foo="foo",method="GET",request="/v1.0/example",status="200"} 0.005
+app_http_upstream_time_seconds_count{foo="foo",method="GET",request="/v1.0/example",status="200"} 2
+app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="0.1"} 1
+app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="0.3"} 1
+app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="0.5"} 1
+app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="1"} 1
+app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="2"} 1
+app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="+Inf"} 1
+app_http_upstream_time_seconds_sum{foo="foo",method="GET",request="/v1.0/example/:id",status="200"} 0.003
+app_http_upstream_time_seconds_count{foo="foo",method="GET",request="/v1.0/example/:id",status="200"} 1
 ```
 
 ## Thanks

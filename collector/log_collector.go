@@ -1,4 +1,4 @@
-package metric
+package collector
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 	"github.com/hpcloud/tail"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/satyrius/gonx"
+
 	"github.com/songjiayang/nginx-log-exporter/config"
 )
 
@@ -50,12 +51,14 @@ func NewCollector(cfg *config.AppConfig) *Collector {
 			Namespace: cfg.Name,
 			Name:      "http_upstream_time_seconds",
 			Help:      "Time needed by upstream servers to handle requests",
+			Buckets:   cfg.MustBucketsFor("upstream"),
 		}, labels),
 
 		responseSeconds: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: cfg.Name,
 			Name:      "http_response_time_seconds",
 			Help:      "Time needed by NGINX to handle requests",
+			Buckets:   cfg.MustBucketsFor("response"),
 		}, labels),
 
 		staticValues:    staticValues,
@@ -133,7 +136,7 @@ func (c *Collector) formatValue(label, value string) string {
 		value = strings.Split(value, replacement.Trim)[0]
 	}
 
-	for _, target := range replacement.Repace {
+	for _, target := range replacement.Replaces {
 		if target.Regexp().MatchString(value) {
 			return target.Value
 		}

@@ -5,7 +5,7 @@ import (
 	"log"
 	"regexp"
 
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
@@ -18,17 +18,18 @@ type AppConfig struct {
 	Name   string `yaml:"name"`
 	Format string `yaml:"format"`
 
-	SourceFiles   []string          `yaml:"source_files"`
-	StaticConfig  map[string]string `yaml:"static_config"`
-	RelabelConfig *RelabelConfig    `yaml:"relabel_config"`
+	SourceFiles   []string             `yaml:"source_files"`
+	StaticConfig  map[string]string    `yaml:"static_config"`
+	RelabelConfig *RelabelConfig       `yaml:"relabel_config"`
+	Buckets       map[string][]float64 `yaml:"buckets"`
 }
 
-func (this *AppConfig) StaticLabelValues() (labels, values []string) {
-	labels = make([]string, len(this.StaticConfig))
-	values = make([]string, len(this.StaticConfig))
+func (cfg *AppConfig) StaticLabelValues() (labels, values []string) {
+	labels = make([]string, len(cfg.StaticConfig))
+	values = make([]string, len(cfg.StaticConfig))
 
 	i := 0
-	for k, v := range this.StaticConfig {
+	for k, v := range cfg.StaticConfig {
 		labels[i] = k
 		values[i] = v
 		i++
@@ -37,16 +38,24 @@ func (this *AppConfig) StaticLabelValues() (labels, values []string) {
 	return
 }
 
-func (this *AppConfig) DynamicLabels() (labels []string) {
-	return this.RelabelConfig.SourceLabels
+func (cfg *AppConfig) DynamicLabels() (labels []string) {
+	return cfg.RelabelConfig.SourceLabels
 }
 
-func (this *AppConfig) Prepare() {
-	for _, r := range this.RelabelConfig.Replacement {
-		for _, replaceItem := range r.Repace {
+func (cfg *AppConfig) Prepare() {
+	for _, r := range cfg.RelabelConfig.Replacement {
+		for _, replaceItem := range r.Replaces {
 			replaceItem.prepare()
 		}
 	}
+}
+
+func (cfg *AppConfig) MustBucketsFor(name string) []float64 {
+	if cfg.Buckets == nil {
+		return nil
+	}
+
+	return cfg.Buckets[name]
 }
 
 type RelabelConfig struct {
@@ -55,37 +64,37 @@ type RelabelConfig struct {
 }
 
 type Replacement struct {
-	Trim   string          `yaml:"trim"`
-	Repace []*RepaceTarget `yaml:"replace"`
+	Trim     string           `yaml:"trim"`
+	Replaces []*ReplaceTarget `yaml:"replace"`
 }
 
-type RepaceTarget struct {
+type ReplaceTarget struct {
 	Target string `yaml:"target"`
 	Value  string `yaml:"value"`
 
 	tRex *regexp.Regexp
 }
 
-func (this *RepaceTarget) Regexp() *regexp.Regexp {
-	return this.tRex
+func (rt *ReplaceTarget) Regexp() *regexp.Regexp {
+	return rt.tRex
 }
 
-func (this *RepaceTarget) prepare() {
-	replace, err := regexp.Compile(this.Target)
+func (rt *ReplaceTarget) prepare() {
+	replace, err := regexp.Compile(rt.Target)
 	if err != nil {
 		log.Panic(err)
 	}
 
-	this.tRex = replace
+	rt.tRex = replace
 }
 
-func (this *Config) Reload() error {
-	original, err := load(this.original)
+func (cfg *Config) Reload() error {
+	original, err := load(cfg.original)
 	if err != nil {
 		return err
 	}
 
-	this = original
+	cfg = original
 	return nil
 }
 
