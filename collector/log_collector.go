@@ -51,14 +51,14 @@ func NewCollector(cfg *config.AppConfig) *Collector {
 			Namespace: cfg.Name,
 			Name:      "http_upstream_time_seconds",
 			Help:      "Time needed by upstream servers to handle requests",
-			Buckets:   cfg.MustBucketsFor("upstream"),
+			Buckets:   cfg.Buckets,
 		}, labels),
 
 		responseSeconds: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: cfg.Name,
 			Name:      "http_response_time_seconds",
 			Help:      "Time needed by NGINX to handle requests",
-			Buckets:   cfg.MustBucketsFor("response"),
+			Buckets:   cfg.Buckets,
 		}, labels),
 
 		staticValues:    staticValues,

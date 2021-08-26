@@ -16,6 +16,5 @@ func TestLoad(t *testing.T) {
 	assertion.NotEmpty(cfg.App[0].Format)
 	assertion.Equal(1, len(cfg.App[0].SourceFiles))
 	assertion.Equal("foo", cfg.App[0].StaticConfig["foo"])
-	assertion.NotEmpty(cfg.App[0].Buckets["upstream"])
-	assertion.NotEmpty(cfg.App[0].Buckets["response"])
+	assertion.NotEmpty(cfg.App[0].Buckets)
 }

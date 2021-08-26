@@ -18,10 +18,10 @@ type AppConfig struct {
 	Name   string `yaml:"name"`
 	Format string `yaml:"format"`
 
-	SourceFiles   []string             `yaml:"source_files"`
-	StaticConfig  map[string]string    `yaml:"static_config"`
-	RelabelConfig *RelabelConfig       `yaml:"relabel_config"`
-	Buckets       map[string][]float64 `yaml:"buckets"`
+	SourceFiles   []string          `yaml:"source_files"`
+	StaticConfig  map[string]string `yaml:"static_config"`
+	RelabelConfig *RelabelConfig    `yaml:"relabel_config"`
+	Buckets       []float64         `yaml:"histogram_buckets"`
 }
 
 func (cfg *AppConfig) StaticLabelValues() (labels, values []string) {
@@ -48,14 +48,6 @@ func (cfg *AppConfig) Prepare() {
 			replaceItem.prepare()
 		}
 	}
-}
-
-func (cfg *AppConfig) MustBucketsFor(name string) []float64 {
-	if cfg.Buckets == nil {
-		return nil
-	}
-
-	return cfg.Buckets[name]
 }
 
 type RelabelConfig struct {
