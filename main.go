@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/songjiayang/nginx-log-exporter/collector"
@@ -31,6 +32,14 @@ func main() {
 	}
 
 	fmt.Printf("running HTTP server on address %s\n", bind)
-	http.Handle("/metrics", promhttp.Handler())
-	http.ListenAndServe(bind, nil)
+
+	http.Handle("/metrics", promhttp.HandlerFor(
+		prometheus.DefaultGatherer,
+		promhttp.HandlerOpts{
+			EnableOpenMetrics: true,
+		},
+	))
+	if err := http.ListenAndServe(bind, nil); err != nil {
+		log.Fatalf("start server with error: %v\n", err)
+	}
 }

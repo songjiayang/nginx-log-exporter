@@ -114,13 +114,8 @@ func (c *Collector) Run() {
 					c.bytesTotal.WithLabelValues(labelValues...).Add(bytes)
 				}
 
-				if upstreamTime, err := entry.FloatField("upstream_response_time"); err == nil {
-					c.upstreamSeconds.WithLabelValues(labelValues...).Observe(upstreamTime)
-				}
-
-				if responseTime, err := entry.FloatField("request_time"); err == nil {
-					c.responseSeconds.WithLabelValues(labelValues...).Observe(responseTime)
-				}
+				c.updateHistogramMetric(c.upstreamSeconds, labelValues, entry, "upstream_response_time")
+				c.updateHistogramMetric(c.responseSeconds, labelValues, entry, "request_time")
 			}
 		}()
 	}
@@ -143,4 +138,21 @@ func (c *Collector) formatValue(label, value string) string {
 	}
 
 	return value
+}
+
+func (c *Collector) updateHistogramMetric(metric *prometheus.HistogramVec, labelValues []string, entry *gonx.Entry, field string) {
+	value, err := entry.FloatField(field)
+	if err != nil {
+		return
+	}
+
+	exemplarLabels := c.cfg.ExemplarMatch(entry, field)
+	if exemplarLabels == nil {
+		metric.WithLabelValues(labelValues...).Observe(value)
+		return
+	}
+
+	metric.WithLabelValues(labelValues...).(prometheus.ExemplarObserver).ObserveWithExemplar(
+		value, *exemplarLabels,
+	)
 }

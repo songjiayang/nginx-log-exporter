@@ -4,6 +4,11 @@ import (
 	"io/ioutil"
 	"log"
 	"regexp"
+	"strconv"
+	"strings"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/satyrius/gonx"
 
 	"gopkg.in/yaml.v2"
 )
@@ -18,10 +23,11 @@ type AppConfig struct {
 	Name   string `yaml:"name"`
 	Format string `yaml:"format"`
 
-	SourceFiles   []string          `yaml:"source_files"`
-	StaticConfig  map[string]string `yaml:"static_config"`
-	RelabelConfig *RelabelConfig    `yaml:"relabel_config"`
-	Buckets       []float64         `yaml:"histogram_buckets"`
+	SourceFiles    []string          `yaml:"source_files"`
+	StaticConfig   map[string]string `yaml:"static_config"`
+	RelabelConfig  *RelabelConfig    `yaml:"relabel_config"`
+	Buckets        []float64         `yaml:"histogram_buckets"`
+	ExemplarConfig *ExemplarConfig   `yaml:"exemplar_config"`
 }
 
 func (cfg *AppConfig) StaticLabelValues() (labels, values []string) {
@@ -42,11 +48,23 @@ func (cfg *AppConfig) DynamicLabels() (labels []string) {
 	return cfg.RelabelConfig.SourceLabels
 }
 
+func (cfg *AppConfig) ExemplarMatch(entry *gonx.Entry, field string) *prometheus.Labels {
+	if cfg.ExemplarConfig == nil {
+		return nil
+	}
+
+	return cfg.ExemplarConfig.Match(entry, field)
+}
+
 func (cfg *AppConfig) Prepare() {
 	for _, r := range cfg.RelabelConfig.Replacement {
 		for _, replaceItem := range r.Replaces {
 			replaceItem.prepare()
 		}
+	}
+
+	if cfg.ExemplarConfig != nil {
+		cfg.ExemplarConfig.load()
 	}
 }
 
@@ -78,6 +96,72 @@ func (rt *ReplaceTarget) prepare() {
 	}
 
 	rt.tRex = replace
+}
+
+type ExemplarConfig struct {
+	MatchConfig map[string]string `yaml:"match"`
+	Labels      []string          `yaml:"labels"`
+	matchers    map[string]*ExemplarMatcher
+}
+
+type ExemplarMatcher struct {
+	isEqual  bool
+	isBigger bool
+	value    float64
+}
+
+func newExemplarMatcher(matchStr string) *ExemplarMatcher {
+	ret := &ExemplarMatcher{
+		isEqual:  strings.Contains(matchStr, "="),
+		isBigger: strings.Contains(matchStr, ">"),
+	}
+
+	valueStr := strings.Replace(matchStr, "=", "", -1)
+	valueStr = strings.Replace(valueStr, ">", "", -1)
+	valueStr = strings.TrimSpace(valueStr)
+
+	// ignore err here
+	ret.value, _ = strconv.ParseFloat(valueStr, 64)
+
+	return ret
+}
+
+func (ec *ExemplarConfig) load() {
+	ec.matchers = make(map[string]*ExemplarMatcher)
+	for k, v := range ec.MatchConfig {
+		ec.matchers[k] = newExemplarMatcher(v)
+	}
+}
+
+func (ec *ExemplarConfig) Match(entry *gonx.Entry, field string) *prometheus.Labels {
+	var matched bool
+
+	matcher, ok := ec.matchers[field]
+	if !ok {
+		return nil
+	}
+
+	if value, err := entry.FloatField(field); err == nil {
+		if matcher.isEqual && value == matcher.value {
+			matched = true
+		}
+
+		if matcher.isBigger && value > matcher.value {
+			matched = true
+		}
+	}
+
+	if !matched {
+		return nil
+	}
+
+	ret := prometheus.Labels{}
+	for _, k := range ec.Labels {
+		if value, err := entry.Field(k); err == nil {
+			ret[k] = value
+		}
+	}
+	return &ret
 }
 
 func (cfg *Config) Reload() error {
