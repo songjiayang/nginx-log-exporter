@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/hpcloud/tail"
 	"github.com/prometheus/client_golang/prometheus"
@@ -143,7 +144,16 @@ func (c *Collector) formatValue(label, value string) string {
 func (c *Collector) updateHistogramMetric(metric *prometheus.HistogramVec, labelValues []string, entry *gonx.Entry, field string) {
 	value, err := entry.FloatField(field)
 	if err != nil {
-		return
+		//sometime the value duration
+		field, err := entry.Field(field)
+		if err != nil {
+			return
+		}
+		duration, err := time.ParseDuration(field)
+		if err != nil {
+			return
+		}
+		value = duration.Seconds()
 	}
 
 	exemplarLabels := c.cfg.ExemplarMatch(entry, field)

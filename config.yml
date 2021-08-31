@@ -22,3 +22,18 @@
     labels:
       - request_id
       - remote_addr
+- name: gin
+  format: $clientip - [$time_local] "$method $request $protocol $status $upstream_response_time "$http_user_agent" $err"
+  source_files:
+    - ./test/gin.log
+  external_labels:
+    region: zone1
+  relabel_config:
+    source_labels:
+      - request
+      - method
+      - status
+    replacement:
+      request:
+        trim: "?"
+  histogram_buckets: [0.1, 0.3, 0.5, 1, 2]
