@@ -2,8 +2,8 @@
   format: $remote_addr - $remote_user [$time_local] "$method $request $protocol" $request_time-$upstream_response_time $status $body_bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for" $request_id
   source_files:
     - ./test/nginx.log
-  static_config:
-    foo: foo
+  external_labels:
+    region: zone1
   relabel_config:
     source_labels:
       - request

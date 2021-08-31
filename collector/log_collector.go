@@ -20,7 +20,7 @@ type Collector struct {
 	upstreamSeconds *prometheus.HistogramVec
 	responseSeconds *prometheus.HistogramVec
 
-	staticValues    []string
+	externalValues  []string
 	dynamicLabels   []string
 	dynamicValueLen int
 
@@ -29,10 +29,10 @@ type Collector struct {
 }
 
 func NewCollector(cfg *config.AppConfig) *Collector {
-	staticLabels, staticValues := cfg.StaticLabelValues()
+	exlables, exValues := cfg.ExternalLabelSets()
 	dynamicLabels := cfg.DynamicLabels()
 
-	labels := append(staticLabels, dynamicLabels...)
+	labels := append(exlables, dynamicLabels...)
 
 	return &Collector{
 		countTotal: prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -51,17 +51,17 @@ func NewCollector(cfg *config.AppConfig) *Collector {
 			Namespace: cfg.Name,
 			Name:      "http_upstream_time_seconds",
 			Help:      "Time needed by upstream servers to handle requests",
-			Buckets:   cfg.Buckets,
+			Buckets:   cfg.HistogramBuckets,
 		}, labels),
 
 		responseSeconds: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: cfg.Name,
 			Name:      "http_response_time_seconds",
 			Help:      "Time needed by NGINX to handle requests",
-			Buckets:   cfg.Buckets,
+			Buckets:   cfg.HistogramBuckets,
 		}, labels),
 
-		staticValues:    staticValues,
+		externalValues:  exValues,
 		dynamicLabels:   dynamicLabels,
 		dynamicValueLen: len(dynamicLabels),
 
@@ -106,7 +106,7 @@ func (c *Collector) Run() {
 					}
 				}
 
-				labelValues := append(c.staticValues, dynamicValues...)
+				labelValues := append(c.externalValues, dynamicValues...)
 
 				c.countTotal.WithLabelValues(labelValues...).Inc()
 

@@ -15,6 +15,6 @@ func TestLoad(t *testing.T) {
 	assertion.Equal("app", cfg.App[0].Name)
 	assertion.NotEmpty(cfg.App[0].Format)
 	assertion.Equal(1, len(cfg.App[0].SourceFiles))
-	assertion.Equal("foo", cfg.App[0].StaticConfig["foo"])
-	assertion.NotEmpty(cfg.App[0].Buckets)
+	assertion.Equal("foo", cfg.App[0].ExternalLabels["foo"])
+	assertion.NotEmpty(cfg.App[0].HistogramBuckets)
 }

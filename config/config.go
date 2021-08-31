@@ -23,19 +23,19 @@ type AppConfig struct {
 	Name   string `yaml:"name"`
 	Format string `yaml:"format"`
 
-	SourceFiles    []string          `yaml:"source_files"`
-	StaticConfig   map[string]string `yaml:"static_config"`
-	RelabelConfig  *RelabelConfig    `yaml:"relabel_config"`
-	Buckets        []float64         `yaml:"histogram_buckets"`
-	ExemplarConfig *ExemplarConfig   `yaml:"exemplar_config"`
+	SourceFiles      []string          `yaml:"source_files"`
+	ExternalLabels   map[string]string `yaml:"external_labels"`
+	RelabelConfig    *RelabelConfig    `yaml:"relabel_config"`
+	HistogramBuckets []float64         `yaml:"histogram_buckets"`
+	ExemplarConfig   *ExemplarConfig   `yaml:"exemplar_config"`
 }
 
-func (cfg *AppConfig) StaticLabelValues() (labels, values []string) {
-	labels = make([]string, len(cfg.StaticConfig))
-	values = make([]string, len(cfg.StaticConfig))
+func (cfg *AppConfig) ExternalLabelSets() (labels, values []string) {
+	labels = make([]string, len(cfg.ExternalLabels))
+	values = make([]string, len(cfg.ExternalLabels))
 
 	i := 0
-	for k, v := range cfg.StaticConfig {
+	for k, v := range cfg.ExternalLabels {
 		labels[i] = k
 		values[i] = v
 		i++

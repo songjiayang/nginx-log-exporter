@@ -29,8 +29,8 @@ exit status 2
   format: $remote_addr - $remote_user [$time_local] "$method $request $protocol" $request_time-$upstream_response_time $status $body_bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for"
   source_files:
     - ./test/nginx.log
-  static_config:
-    foo: foo
+  external_labels:
+    region: zone1
   relabel_config:
     source_labels:
       - request
@@ -42,58 +42,76 @@ exit status 2
         replace:
           - target: /v1.0/example/\d+
             value: /v1.0/example/:id
-  buckets:
-    upstream: [0.1, 0.3, 0.5, 1, 2]
-    response: [0.1, 0.3, 0.5, 1, 2]
+  histogram_buckets: [0.1, 0.3, 0.5, 1, 2]
+  exemplar_config:
+    match:
+      request_time: ">= 0.3"
+    labels:
+      - request_id
+      - remote_addr
 ```
 
-- format: your nginx `log_format` regular expression, notice: you should make a new one for your app.
+- format: your nginx `log_format` regular expression, notice: you should make a new one for your app, variable your log with format configuration, you almost have some variables like `body_bytes_sent`, `upstream_response_time`, `request_time`.
 - name: service name, metric will be `{name}_http_response_count_total`, `{name}_http_response_count_total`, `{name}_http_response_size_bytes`, `{name}_http_upstream_time_seconds`, `{name}_http_response_time_seconds`
-- source_files: sevice nginx log, support multiple files.
-- static_config: all metrics will add static labelsets.
+- source_files: service nginx log, support multiple files.
+- external_labels: all metrics will add this labelsets.
 - relabel_config:
   * source_labels: what's labels should be use.
   * replacement: source labelvalue format rule, it supports regrex, eg `/v1.0/example/123?id=q=xxx` will relace to `/v1.0/example/:id`, it's very powerful. 
-
+- histogram_buckets: configure histogram metrics buckets.
+- exemplar_config: configure exemplars, it used for histogram metrics.
+ 
 ## Example
 
 `./test/nginx.log` result is
 
 ```
-app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="0.1"} 2
-app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="0.3"} 2
-app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="0.5"} 2
-app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="1"} 2
-app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="2"} 2
-app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="+Inf"} 2
-app_http_response_time_seconds_sum{foo="foo",method="GET",request="/v1.0/example",status="200"} 0.005
-app_http_response_time_seconds_count{foo="foo",method="GET",request="/v1.0/example",status="200"} 2
-app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="0.1"} 1
-app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="0.3"} 1
-app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="0.5"} 1
-app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="1"} 1
-app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="2"} 1
-app_http_response_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="+Inf"} 1
-app_http_response_time_seconds_sum{foo="foo",method="GET",request="/v1.0/example/:id",status="200"} 0.003
-app_http_response_time_seconds_count{foo="foo",method="GET",request="/v1.0/example/:id",status="200"} 1
-# HELP app_http_upstream_time_seconds Time needed by upstream servers to handle requests
-# TYPE app_http_upstream_time_seconds histogram
-app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="0.1"} 2
-app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="0.3"} 2
-app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="0.5"} 2
-app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="1"} 2
-app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="2"} 2
-app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example",status="200",le="+Inf"} 2
-app_http_upstream_time_seconds_sum{foo="foo",method="GET",request="/v1.0/example",status="200"} 0.005
-app_http_upstream_time_seconds_count{foo="foo",method="GET",request="/v1.0/example",status="200"} 2
-app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="0.1"} 1
-app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="0.3"} 1
-app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="0.5"} 1
-app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="1"} 1
-app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="2"} 1
-app_http_upstream_time_seconds_bucket{foo="foo",method="GET",request="/v1.0/example/:id",status="200",le="+Inf"} 1
-app_http_upstream_time_seconds_sum{foo="foo",method="GET",request="/v1.0/example/:id",status="200"} 0.003
-app_http_upstream_time_seconds_count{foo="foo",method="GET",request="/v1.0/example/:id",status="200"} 1
+# HELP app_http_response_count_total Amount of processed HTTP requests
+# TYPE app_http_response_count_total counter
+app_http_response_count_total{method="GET",region="zone1",request="/v1.0/example",status="200"} 2
+app_http_response_count_total{method="GET",region="zone1",request="/v1.0/example/:id",status="200"} 1
+app_http_response_count_total{method="GET",region="zone1",request="/v1.0/example/:id",status="400"} 1
+app_http_response_count_total{method="GET",region="zone1",request="/v1.0/example/:id",status="500"} 1
+# HELP app_http_response_size_bytes Total amount of transferred bytes
+# TYPE app_http_response_size_bytes counter
+app_http_response_size_bytes{method="GET",region="zone1",request="/v1.0/example",status="200"} 70
+app_http_response_size_bytes{method="GET",region="zone1",request="/v1.0/example/:id",status="200"} 21
+app_http_response_size_bytes{method="GET",region="zone1",request="/v1.0/example/:id",status="400"} 21
+app_http_response_size_bytes{method="GET",region="zone1",request="/v1.0/example/:id",status="500"} 21
+# HELP app_http_response_time_seconds Time needed by NGINX to handle requests
+# TYPE app_http_response_time_seconds histogram
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example",status="200",le="0.1"} 2
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example",status="200",le="0.3"} 2
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example",status="200",le="0.5"} 2
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example",status="200",le="1"} 2
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example",status="200",le="2"} 2
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example",status="200",le="+Inf"} 2
+app_http_response_time_seconds_sum{method="GET",region="zone1",request="/v1.0/example",status="200"} 0.005
+app_http_response_time_seconds_count{method="GET",region="zone1",request="/v1.0/example",status="200"} 2
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example/:id",status="200",le="0.1"} 1
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example/:id",status="200",le="0.3"} 1
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example/:id",status="200",le="0.5"} 1
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example/:id",status="200",le="1"} 1
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example/:id",status="200",le="2"} 1
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example/:id",status="200",le="+Inf"} 1
+app_http_response_time_seconds_sum{method="GET",region="zone1",request="/v1.0/example/:id",status="200"} 0.003
+app_http_response_time_seconds_count{method="GET",region="zone1",request="/v1.0/example/:id",status="200"} 1
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example/:id",status="400",le="0.1"} 1
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example/:id",status="400",le="0.3"} 1
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example/:id",status="400",le="0.5"} 1
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example/:id",status="400",le="1"} 1
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example/:id",status="400",le="2"} 1
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example/:id",status="400",le="+Inf"} 1
+app_http_response_time_seconds_sum{method="GET",region="zone1",request="/v1.0/example/:id",status="400"} 0.003
+app_http_response_time_seconds_count{method="GET",region="zone1",request="/v1.0/example/:id",status="400"} 1
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example/:id",status="500",le="0.1"} 0
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example/:id",status="500",le="0.3"} 0
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example/:id",status="500",le="0.5"} 1
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example/:id",status="500",le="1"} 1
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example/:id",status="500",le="2"} 1
+app_http_response_time_seconds_bucket{method="GET",region="zone1",request="/v1.0/example/:id",status="500",le="+Inf"} 1
+app_http_response_time_seconds_sum{method="GET",region="zone1",request="/v1.0/example/:id",status="500"} 0.5
+app_http_response_time_seconds_count{method="GET",region="zone1",request="/v1.0/example/:id",status="500"} 1
 ```
 
 ## Thanks
