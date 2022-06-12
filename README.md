@@ -1,7 +1,15 @@
 # nginx-log-exporter
-A Nginx log parser exporter for prometheus metrics.
+A Exporter to parse Nginx/gin request log to Prometheus metrics.
 
 ![screen shot 2018-01-08 at 9 36 21 am](https://user-images.githubusercontent.com/1459834/34656613-7083cf3e-f457-11e7-929a-2758abad387b.png)
+
+
+## Features
+
+- Various log formats support.
+- Request path can be rewrited.
+- Status code can be mergeable.
+- Prometheus Exemplar support.
 
 
 ## Installation
