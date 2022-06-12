@@ -25,7 +25,7 @@ exit status 2
 ## Configuration
 
 ```
-- name: app
+- name: nginx
   format: $remote_addr - $remote_user [$time_local] "$method $request $protocol" $request_time-$upstream_response_time $status $body_bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for" $request_id
   source_files:
     - ./test/nginx.log
@@ -42,6 +42,12 @@ exit status 2
         replace:
           - target: /v1.0/example/\d+
             value: /v1.0/example/:id
+      status:
+        replace:
+          - target: 4.+
+            value: 4xx
+          - target: 5.+
+            value: 5xx
   histogram_buckets: [0.1, 0.3, 0.5, 1, 2]
   exemplar_config:
     match:
