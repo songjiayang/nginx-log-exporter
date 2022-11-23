@@ -1,7 +1,7 @@
 - name: nginx
   format: $remote_addr - $remote_user [$time_local] "$method $request $protocol" $request_time-$upstream_response_time $status $body_bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for" $request_id
   source_files:
-    - ./test/nginx.log
+    - ./logs/nginx.log
   external_labels:
     region: zone1
   relabel_config:
@@ -31,7 +31,7 @@
 - name: gin
   format: $clientip - [$time_local] "$method $request $protocol $status $upstream_response_time "$http_user_agent" $err"
   source_files:
-    - ./test/gin.log
+    - ./logs/gin.log
   external_labels:
     region: zone1
   relabel_config:
