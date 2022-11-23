@@ -6,7 +6,7 @@ require (
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/hpcloud/tail v1.0.0
 	github.com/prometheus/client_golang v1.14.0
-	github.com/satyrius/gonx v1.3.0
+	github.com/satyrius/gonx v1.4.0
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/stretchr/testify v1.4.0
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
