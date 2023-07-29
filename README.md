@@ -78,6 +78,77 @@ exit status 2
       request:
         trim: "?"
   histogram_buckets: [0.1, 0.3, 0.5, 1, 2]
+
+- name: gateway_uri
+  format: $remote_addr - $remote_user [$time_local] "$method $uri $protocol" $request_time-$upstream_response_time $status $body_bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for" $request_id
+
+  source_files:
+    - ./logs/nginx_gateway.access.log
+  relabel_config:
+    source_labels:
+      - uri
+      - method
+      - status
+    replacement:
+      uri:
+        trim: "?"
+        replace:
+          # replace url "/api/path1/path2/123/xxx" to  "/api/path1/path2/:id/xxx"
+          # replace url "/api/path7/path8/789/xxx" to  "/api/path7/path8/:id/xxx"
+          - target: (^\/api\/[^\/]+\/[^\/]+\/)\d+(.*)
+            value: ${1}:id${2}
+          # replace url "/api/path1/path2/path3/123/xxx" to  "/api/path1/path2/path3/:id/xxx"
+          # replace url "/api/path7/path8/path9/789/xxx" to  "/api/path7/path8/path9/:id/xxx"
+          - target: (^\/api\/[^\/]+\/[^\/]+\/[^\/]+\/)\d+(.*)
+            value: ${1}:id${2}
+          - target: (^\/api\/[^\/]+\/[^\/]+\/[^\/]+\/)\d+(.*)
+            value: ${1}:id${2}
+          # The remaining uris starting with /api/ remain as is
+          - target: ^\/api\/.*
+            value: ${0}
+          # The uri that does not match the above rules and is not my concern, please replace it with 'notATargetUri'
+          - target: (.*)
+            value: "notATargetUri"
+      status:
+        replace:
+          - target: 404
+            value: 404
+          - target: 4.+
+            value: 4xx
+          - target: 5.+
+            value: 5xx
+  histogram_buckets: [0.1, 0.3, 0.5, 1, 2]
+
+- name: gateway_service
+  format: $remote_addr - $remote_user [$time_local] "$method $service $protocol" $request_time-$upstream_response_time $status $body_bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for" $request_id
+
+  source_files:
+    - ./logs/nginx_gateway.access.log
+  relabel_config:
+    source_labels:
+      - method
+      - status
+      - service
+    replacement:
+      service:
+        trim: "?"
+        replace:
+          # extract the second part from the request_uri as the service name.
+          # The service of "/api/user/path1/123" is "user", and the service of "/api/order/path1/123" is "order"
+          # Then we can generate metrics for the service dimension
+          - target: \/api\/([\d\w-]+)
+            value: ${1}
+          - target: (.*)
+          - value: ""
+      status:
+        replace:
+          - target: 404
+            value: 404
+          - target: 4.+
+            value: 4xx
+          - target: 5.+
+            value: 5xx
+  histogram_buckets: [0.1, 0.3, 0.5, 1, 2]
 ```
 
 - format: your nginx `log_format` regular expression, notice: you should make a new one for your app, variable your log with format configuration, you almost have some variables like `body_bytes_sent`, `upstream_response_time`, `request_time`.
@@ -201,6 +272,37 @@ gin_http_upstream_time_seconds_bucket{method="GET",region="zone1",request="/user
 gin_http_upstream_time_seconds_bucket{method="GET",region="zone1",request="/users",status="200",le="+Inf"} 1
 gin_http_upstream_time_seconds_sum{method="GET",region="zone1",request="/users",status="200"} 0.2
 gin_http_upstream_time_seconds_count{method="GET",region="zone1",request="/users",status="200"} 1
+```
+
+`gateway_uri namespace ` output:
+```
+# TYPE gateway_uri_http_response_count_total counter
+gateway_uri_http_response_count_total{method="GET",status="200",uri="/api/order/path1/:id"} 2
+gateway_uri_http_response_count_total{method="GET",status="200",uri="/api/user/path1/:id"} 2
+gateway_uri_http_response_count_total{method="POST",status="200",uri="/api/order/path1/path2/:id"} 1
+gateway_uri_http_response_count_total{method="POST",status="200",uri="/api/user/path1/path2/:id"} 2
+# HELP gateway_uri_http_response_size_bytes Total amount of transferred bytes
+# TYPE gateway_uri_http_response_size_bytes counter
+gateway_uri_http_response_size_bytes{method="GET",status="200",uri="/api/order/path1/:id"} 70
+gateway_uri_http_response_size_bytes{method="GET",status="200",uri="/api/user/path1/:id"} 70
+gateway_uri_http_response_size_bytes{method="POST",status="200",uri="/api/order/path1/path2/:id"} 21
+gateway_uri_http_response_size_bytes{method="POST",status="200",uri="/api/user/path1/path2/:id"} 42
+```
+
+`gateway_service namespace ` output:
+```
+# TYPE gateway_service_http_response_count_total counter
+gateway_service_http_response_count_total{method="GET",service="order",status="200"} 2
+gateway_service_http_response_count_total{method="GET",service="user",status="200"} 2
+gateway_service_http_response_count_total{method="POST",service="order",status="200"} 1
+gateway_service_http_response_count_total{method="POST",service="user",status="200"} 2
+# HELP gateway_service_http_response_size_bytes Total amount of transferred bytes
+# TYPE gateway_service_http_response_size_bytes counter
+gateway_service_http_response_size_bytes{method="GET",service="order",status="200"} 70
+gateway_service_http_response_size_bytes{method="GET",service="user",status="200"} 70
+gateway_service_http_response_size_bytes{method="POST",service="order",status="200"} 21
+gateway_service_http_response_size_bytes{method="POST",service="user",status="200"} 42
+# HELP gateway_service_http_response_time_seconds Time needed by NGINX to handle requests
 ```
 
 ## Thanks

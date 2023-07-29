@@ -82,7 +82,8 @@ type ReplaceTarget struct {
 	Target string `yaml:"target"`
 	Value  string `yaml:"value"`
 
-	tRex *regexp.Regexp
+	tRex           *regexp.Regexp
+	PlaceHolderRex *regexp.Regexp
 }
 
 func (rt *ReplaceTarget) Regexp() *regexp.Regexp {
@@ -94,8 +95,8 @@ func (rt *ReplaceTarget) prepare() {
 	if err != nil {
 		log.Panic(err)
 	}
-
 	rt.tRex = replace
+	rt.PlaceHolderRex = regexp.MustCompile("(" + "\\$\\{[0-9]\\}" + ")")
 }
 
 type ExemplarConfig struct {

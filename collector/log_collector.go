@@ -3,6 +3,7 @@ package collector
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -134,7 +135,18 @@ func (c *Collector) formatValue(label, value string) string {
 
 	for _, target := range replacement.Replaces {
 		if target.Regexp().MatchString(value) {
-			return target.Value
+			// value contains placeholder
+			hasPlaceHolder := target.PlaceHolderRex.MatchString(target.Value)
+			if hasPlaceHolder {
+				matches := target.Regexp().FindStringSubmatch(value)
+				// reslove placeHolders
+				return target.PlaceHolderRex.ReplaceAllStringFunc(target.Value, func(src string) string {
+					index, _ := strconv.Atoi(src[2:3])
+					return matches[index]
+				})
+			} else {
+				return target.Value
+			}
 		}
 	}
 
