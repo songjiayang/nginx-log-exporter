@@ -27,6 +27,8 @@ Usage of:
     	Nginx log exporter configuration file name. (default "config.yml")
   -web.listen-address string
     	Address to listen on for the web interface and API. (default ":9999")
+  -placeholder.replace bool
+         Whether enable placeholder replacement when rewriting the request path  (default false)
 exit status 2
 ```
 
