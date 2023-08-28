@@ -27,10 +27,11 @@ type Collector struct {
 	dynamicValueLen int
 
 	cfg    *config.AppConfig
+	opts   config.Options
 	parser *gonx.Parser
 }
 
-func NewCollector(cfg *config.AppConfig) *Collector {
+func NewCollector(cfg *config.AppConfig, opts config.Options) *Collector {
 	exlables, exValues := cfg.ExternalLabelSets()
 	dynamicLabels := cfg.DynamicLabels()
 
@@ -68,6 +69,7 @@ func NewCollector(cfg *config.AppConfig) *Collector {
 		dynamicValueLen: len(dynamicLabels),
 
 		cfg:    cfg,
+		opts:   opts,
 		parser: gonx.NewParser(cfg.Format),
 	}
 }
@@ -134,7 +136,7 @@ func (c *Collector) formatValue(label, value string) string {
 	}
 
 	for _, target := range replacement.Replaces {
-		if target.Regexp().MatchString(value) {
+		if c.opts.EnablePlaceholderReplace() && target.Regexp().MatchString(value) {
 			// value contains placeholder
 			hasPlaceHolder := target.PlaceHolderRex().MatchString(target.Value)
 			if hasPlaceHolder {
