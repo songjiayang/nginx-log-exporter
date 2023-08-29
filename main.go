@@ -14,12 +14,14 @@ import (
 )
 
 var (
-	bind, configFile string
+	bind, configFile   string
+	placeholderReplace bool
 )
 
 func main() {
 	flag.StringVar(&bind, "web.listen-address", ":9999", "Address to listen on for the web interface and API.")
 	flag.StringVar(&configFile, "config.file", "config.yml", "Nginx log exporter configuration file name.")
+	flag.BoolVar(&placeholderReplace, "placeholder.replace", false, "Enable placeholder replacement when rewriting the request path.")
 	flag.Parse()
 
 	cfg, err := config.LoadFile(configFile)
@@ -27,8 +29,11 @@ func main() {
 		log.Panic(err)
 	}
 
+	var options config.Options
+	options.SetPlaceholderReplace(placeholderReplace)
+
 	for _, app := range cfg.App {
-		go collector.NewCollector(app).Run()
+		go collector.NewCollector(app, options).Run()
 	}
 
 	fmt.Printf("running HTTP server on address %s\n", bind)

@@ -43,3 +43,75 @@
       request:
         trim: "?"
   histogram_buckets: [0.1, 0.3, 0.5, 1, 2]
+
+- name: gateway_uri
+  format: $remote_addr - $remote_user [$time_local] "$method $uri $protocol" $request_time-$upstream_response_time $status $body_bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for" $request_id
+
+  source_files:
+    - ./logs/nginx_gateway.access.log
+  relabel_config:
+    source_labels:
+      - uri
+      - method
+      - status
+    replacement:
+      uri:
+        trim: "?"
+        replace:
+          # replace url "/api/path1/path2/123/xxx" to  "/api/path1/path2/:id/xxx"
+          # replace url "/api/path7/path8/789/xxx" to  "/api/path7/path8/:id/xxx"
+          - target: (^\/api\/[^\/]+\/[^\/]+\/)\d+(.*)
+            value: ${1}:id${2}
+          # replace url "/api/path1/path2/path3/123/xxx" to  "/api/path1/path2/path3/:id/xxx"
+          # replace url "/api/path7/path8/path9/789/xxx" to  "/api/path7/path8/path9/:id/xxx"
+          - target: (^\/api\/[^\/]+\/[^\/]+\/[^\/]+\/)\d+(.*)
+            value: ${1}:id${2}
+          - target: (^\/api\/[^\/]+\/[^\/]+\/[^\/]+\/)\d+(.*)
+            value: ${1}:id${2}
+          # The remaining uris starting with /api/ remain as is
+          - target: ^\/api\/.*
+            value: ${0}
+          # The uri that does not match the above rules and is not my concern, please replace it with 'notATargetUri'
+          - target: (.*)
+            value: "notATargetUri"
+      status:
+        replace:
+          - target: 404
+            value: 404
+          - target: 4.+
+            value: 4xx
+          - target: 5.+
+            value: 5xx
+  histogram_buckets: [0.1, 0.3, 0.5, 1, 2]
+
+- name: gateway_service
+  format: $remote_addr - $remote_user [$time_local] "$method $service $protocol" $request_time-$upstream_response_time $status $body_bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for" $request_id
+
+  source_files:
+    - ./logs/nginx_gateway.access.log
+  relabel_config:
+    source_labels:
+      - method
+      - status
+      - service
+    replacement:
+      service:
+        trim: "?"
+        replace:
+          # extract the second part from the request_uri as the service name.
+          # The service of "/api/user/path1/123" is "user", and the service of "/api/order/path1/123" is "order"
+          # Then we can generate metrics for the service dimension
+          - target: \/api\/([\d\w-]+)
+            value: ${1}
+          - target: (.*)
+          - value: ""
+      status:
+        replace:
+          - target: 404
+            value: 404
+          - target: 4.+
+            value: 4xx
+          - target: 5.+
+            value: 5xx
+  histogram_buckets: [0.1, 0.3, 0.5, 1, 2]
+
