@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -16,12 +17,14 @@ import (
 var (
 	bind, configFile   string
 	placeholderReplace bool
+	pollLogInterval    time.Duration
 )
 
 func main() {
 	flag.StringVar(&bind, "web.listen-address", ":9999", "Address to listen on for the web interface and API.")
 	flag.StringVar(&configFile, "config.file", "config.yml", "Nginx log exporter configuration file name.")
 	flag.BoolVar(&placeholderReplace, "placeholder.replace", false, "Enable placeholder replacement when rewriting the request path.")
+	flag.DurationVar(&pollLogInterval, "poll_log_interval", 0, "Set the interval to find all matched log files for polling; must be positive, or zero to disable polling.  With polling mode, only the files found at mtail startup will be polled.")
 	flag.Parse()
 
 	cfg, err := config.LoadFile(configFile)
@@ -31,6 +34,7 @@ func main() {
 
 	var options config.Options
 	options.SetPlaceholderReplace(placeholderReplace)
+	options.SetPollLogInterval(pollLogInterval)
 
 	for _, app := range cfg.App {
 		go collector.NewCollector(app, options).Run()
