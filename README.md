@@ -10,6 +10,7 @@ A Exporter to parse Nginx/gin request log to Prometheus metrics.
 - Request path can be rewrited.
 - Status code can be mergeable.
 - Prometheus Exemplar support.
+- filename can be a glob pattern, and automatically scanning of matching new files 
 
 
 ## Installation
@@ -28,7 +29,9 @@ Usage of:
   -web.listen-address string
     	Address to listen on for the web interface and API. (default ":9999")
   -placeholder.replace bool
-         Whether enable placeholder replacement when rewriting the request path  (default false)
+        Whether enable placeholder replacement when rewriting the request path  (default false)
+  -poll_log_interval time.Duration
+        Set the interval to find all matched log files for polling; must be positive, or zero to disable polling.
 exit status 2
 ```
 
