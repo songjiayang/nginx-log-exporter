@@ -24,14 +24,14 @@ type Collector struct {
 	upstreamSeconds *prometheus.HistogramVec
 	responseSeconds *prometheus.HistogramVec
 
-	externalValues  []string
-	dynamicLabels   []string
-	dynamicValueLen int
-	trackedFiles    []string // List of tracked files to compare which are newly matched files
-
-	cfg    *config.AppConfig
-	opts   config.Options
-	parser *gonx.Parser
+	externalValues    []string
+	dynamicLabels     []string
+	dynamicValueLen   int
+	trackedFiles      []string       // List of tracked files to compare which are newly matched files
+	trackedTotalLines map[string]int // Total number of tracked file`s rows, used to debug
+	cfg               *config.AppConfig
+	opts              config.Options
+	parser            *gonx.Parser
 
 	pollMu sync.Mutex // protects Poll()
 
@@ -74,9 +74,10 @@ func NewCollector(cfg *config.AppConfig, opts config.Options) *Collector {
 		dynamicLabels:   dynamicLabels,
 		dynamicValueLen: len(dynamicLabels),
 
-		cfg:    cfg,
-		opts:   opts,
-		parser: gonx.NewParser(cfg.Format),
+		cfg:               cfg,
+		opts:              opts,
+		trackedTotalLines: make(map[string]int),
+		parser:            gonx.NewParser(cfg.Format),
 	}
 }
 
@@ -121,6 +122,7 @@ func (c *Collector) startLogFilesPollLoop() {
 		defer ticker.Stop()
 		for range ticker.C {
 			c.pollLogFiles()
+			fmt.Println("Total number of tracked file`s rows:", c.trackedTotalLines)
 		}
 	}()
 }
@@ -146,6 +148,8 @@ func (c *Collector) tailPath(pathname string) {
 
 	go func() {
 		for line := range t.Lines {
+			c.trackedTotalLines[pathname]++
+
 			entry, err := c.parser.ParseString(line.Text)
 			if err != nil {
 				fmt.Printf("error while parsing line '%s': %s", line.Text, err)
