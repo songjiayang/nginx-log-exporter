@@ -9,7 +9,7 @@ fi
 
 # prepare folders
 rm -rf nginx-log-exporter && mkdir nginx-log-exporter
-cp -r test nginx-log-exporter/test
+#cp -r test nginx-log-exporter/test
 cp config.yml nginx-log-exporter
 
 declare -a os=(
