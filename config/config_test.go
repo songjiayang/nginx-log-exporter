@@ -11,7 +11,7 @@ func TestLoad(t *testing.T) {
 	cfg, err := LoadFile("../config.yml")
 
 	assertion.Nil(err)
-	assertion.Equal(2, len(cfg.App))
+	assertion.Equal(4, len(cfg.App))
 	assertion.Equal("nginx", cfg.App[0].Name)
 	assertion.NotEmpty(cfg.App[0].Format)
 	assertion.Equal(1, len(cfg.App[0].SourceFiles))
