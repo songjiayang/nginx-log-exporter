@@ -3,18 +3,17 @@
 set -e
 if [ $# != 1 ]; then
   echo "Usage:"
-
-  echo "./build.sh 0.1.0"
+  echo "./build.sh 0.3.0"
   exit 1
 fi
 
 # prepare folders
 rm -rf nginx-log-exporter && mkdir nginx-log-exporter
-cp -r test nginx-log-exporter/test
+#cp -r test nginx-log-exporter/test
 cp config.yml nginx-log-exporter
 
 declare -a os=(
-"darwin"
+"darwin" "darwin"
 "freebsd" "freebsd" "freebsd"
 "linux" "linux" "linux" "linux" "linux" "linux" "linux" "linux" "linux" "linux"
 "netbsd" "netbsd" "netbsd"
@@ -22,7 +21,7 @@ declare -a os=(
 "windows" "windows")
 
 declare -a arches=(
-"amd64"
+"amd64" "arm64"
 "386" "amd64" "arm"
 "386" "amd64" "arm" "arm64" "ppc64" "ppc64le" "mips" "mipsle" "mips64" "mips64le"
 "386" "amd64" "arm"

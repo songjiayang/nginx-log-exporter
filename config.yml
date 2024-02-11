@@ -28,6 +28,7 @@
     labels:
       - request_id
       - remote_addr
+
 - name: gin
   format: $clientip - [$time_local] "$method $request $protocol $status $upstream_response_time "$http_user_agent" $err"
   source_files:

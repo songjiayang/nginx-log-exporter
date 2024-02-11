@@ -13,15 +13,13 @@ import (
 	"github.com/songjiayang/nginx-log-exporter/config"
 )
 
-var (
-	bind, configFile   string
-	placeholderReplace bool
-)
-
 func main() {
-	flag.StringVar(&bind, "web.listen-address", ":9999", "Address to listen on for the web interface and API.")
-	flag.StringVar(&configFile, "config.file", "config.yml", "Nginx log exporter configuration file name.")
-	flag.BoolVar(&placeholderReplace, "placeholder.replace", false, "Enable placeholder replacement when rewriting the request path.")
+	var listenAddress, configFile string
+	var placeholderReplace bool
+
+	flag.StringVar(&listenAddress, `web.listen-address`, `:9999`, `Address to listen on for the web interface and API.`)
+	flag.StringVar(&configFile, `config.file`, `config.yml`, `Nginx log exporter configuration file name.`)
+	flag.BoolVar(&placeholderReplace, `placeholder.replace`, false, `Enable placeholder replacement when rewriting the request path.`)
 	flag.Parse()
 
 	cfg, err := config.LoadFile(configFile)
@@ -36,7 +34,7 @@ func main() {
 		go collector.NewCollector(app, options).Run()
 	}
 
-	fmt.Printf("running HTTP server on address %s\n", bind)
+	fmt.Printf("running HTTP server on address %s\n", listenAddress)
 
 	http.Handle("/metrics", promhttp.HandlerFor(
 		prometheus.DefaultGatherer,
@@ -44,7 +42,7 @@ func main() {
 			EnableOpenMetrics: true,
 		},
 	))
-	if err := http.ListenAndServe(bind, nil); err != nil {
+	if err := http.ListenAndServe(listenAddress, nil); err != nil {
 		log.Fatalf("start server with error: %v\n", err)
 	}
 }
